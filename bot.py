@@ -24,7 +24,7 @@ STRENTH = float(os.getenv('STRENTH', '0.50'))
 GUIDANCE_SCALE = float(os.getenv('GUIDANCE_SCALE', '7.0'))
 
 revision = "fp16" if LOW_VRAM_MODE else None
-torch_dtype = torch.float32 if LOW_VRAM_MODE else None
+torch_dtype = torch.float16 if LOW_VRAM_MODE else None
 # load the text2img pipeline
 pipe = StableDiffusionPipeline.from_pretrained(MODEL_DATA, revision=revision, torch_dtype=torch_dtype, use_auth_token=USE_AUTH_TOKEN)
 pipe = pipe.to("cpu")

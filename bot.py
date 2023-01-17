@@ -19,7 +19,7 @@ SAFETY_CHECKER = (os.getenv('SAFETY_CHECKER', 'true').lower() == 'true')
 USE_AUTH_TOKEN = (os.getenv('USE_AUTH_TOKEN', 'true').lower() == 'true')
 HEIGHT = int(os.getenv('HEIGHT', '512'))
 WIDTH = int(os.getenv('WIDTH', '512'))
-NUM_INFERENCE_STEPS = int(os.getenv('NUM_INFERENCE_STEPS', '70'))
+NUM_INFERENCE_STEPS = int(os.getenv('NUM_INFERENCE_STEPS', '25'))
 STRENTH = float(os.getenv('STRENTH', '0.50'))
 GUIDANCE_SCALE = float(os.getenv('GUIDANCE_SCALE', '7.0'))
 

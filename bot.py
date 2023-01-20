@@ -87,8 +87,8 @@ def generate_image(prompt, seed=None, height=HEIGHT, width=WIDTH, num_inference_
                                     guidance_scale=guidance_scale,
                                     num_inference_steps=num_inference_steps)["images"][0]
     if photo1 is not None:
-        pipe.to("cpu")
-        img2imgPipe.to("cuda")
+        pipe.to("cuda")
+        img2imgPipe.to("cpu")
         init_image = Image.open(BytesIO(photo1)).convert("RGB")
         init_image = init_image.resize((1024, 1024))
         with autocast("cuda"):

@@ -24,7 +24,7 @@ STRENTH = float(os.getenv('STRENTH', '0.50'))
 GUIDANCE_SCALE = float(os.getenv('GUIDANCE_SCALE', '7.0'))
 
 revision = "fp16" if LOW_VRAM_MODE else None
-torch_dtype = torch.float16 if LOW_VRAM_MODE else None
+torch_dtype = torch.float32 if LOW_VRAM_MODE else None
 # load the text2img pipeline
 pipe = StableDiffusionPipeline.from_pretrained(MODEL_DATA, revision=revision, torch_dtype=torch_dtype, use_auth_token=USE_AUTH_TOKEN)
 pipe = pipe.to("cpu")
@@ -44,20 +44,23 @@ if not SAFETY_CHECKER:
 
 def image_to_bytes(image):
     bio = BytesIO()
-    bio.name = 'image.jpeg'
+    bio.name = 'str(random.randint(0, 10000)).jpeg'
+   # name_list = ['a','b','g']
+    image.save('image_' +str(random.randint(0, 10000)) + '.JPEG')
     image.save(bio, 'JPEG')
     bio.seek(0)
     return bio
 
 def get_try_again_markup():
-    keyboard = [[InlineKeyboardButton("Попробовать ещё", callback_data="TRYAGAIN"), InlineKeyboardButton("Варианты", callback_data="VARIATIONS")]]
+    keyboard = [[InlineKeyboardButton("Попробовать ещё", callback_data="TRYAGAIN"), InlineKeyboardButton("Варианты", callback_data="VARIATIONS"), InlineKeyboardButton("Увеличить разрешение", callback_data="UPSCALE")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup
 
 
-def generate_image(prompt, seed=None, height=HEIGHT, width=WIDTH, num_inference_steps=NUM_INFERENCE_STEPS, strength=STRENTH, guidance_scale=GUIDANCE_SCALE, photo=None):
+def generate_image(prompt, seed=None, height=HEIGHT, width=WIDTH, num_inference_steps=NUM_INFERENCE_STEPS, strength=STRENTH, guidance_scale=GUIDANCE_SCALE, photo=None , photo1=None):
     seed = seed if seed is not None else random.randint(1, 10000)
     generator = torch.cuda.manual_seed_all(seed)
+
 
     if photo is not None:
         pipe.to("cpu")
@@ -83,6 +86,18 @@ def generate_image(prompt, seed=None, height=HEIGHT, width=WIDTH, num_inference_
                                     width=width,
                                     guidance_scale=guidance_scale,
                                     num_inference_steps=num_inference_steps)["images"][0]
+    if photo1 is not None:
+        pipe.to("cpu")
+        img2imgPipe.to("cuda")
+        init_image = Image.open(BytesIO(photo1)).convert("RGB")
+        init_image = init_image.resize((1024, 1024))
+        with autocast("cuda"):
+            image = img2imgPipe(prompt=[prompt], init_image=init_image,
+                                    negative_prompt = [negative_prompt],
+                                    generator=generator,
+                                    strength=strength,
+                                    guidance_scale=guidance_scale,
+                                    num_inference_steps=num_inference_steps)["images"][0]        
     return image, seed
 
 
@@ -125,6 +140,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         photo = await photo_file.download_as_bytearray()
         prompt = replied_message.text if replied_message.text is not None else replied_message.caption
         im, seed = generate_image(prompt, photo=photo)
+    elif query.data == "UPSCALE":
+        photo_file = await query.message.photo[-1].get_file()
+        photo = await photo_file.download_as_bytearray()
+        prompt = replied_message.text if replied_message.text is not None else replied_message.caption
+        im, seed = generate_image(prompt, photo1=photo)
+        
     await context.bot.delete_message(chat_id=progress_msg.chat_id, message_id=progress_msg.message_id)
     await context.bot.send_photo(update.effective_user.id, image_to_bytes(im), caption=f'"{prompt}" (Seed: {seed})', reply_markup=get_try_again_markup(), reply_to_message_id=replied_message.message_id)
 
